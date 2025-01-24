@@ -1,0 +1,17 @@
+{
+  "name": "deepseek_r1_bot_typescript",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": "tsx watch ./src/index.ts"
+  },
+  "devDependencies": {
+    "tsx": "^4.19.2"
+  },
+  "dependencies": {
+    "discord.js": "^14.17.3",
+    "dotenv": "^16.4.7",
+    "follow-redirects": "^1.15.9"
+  }
+}
