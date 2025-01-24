@@ -54,7 +54,7 @@ client.on(Events.MessageCreate, async (message) => {
   if (message.author.bot) return;
 
   const thinkingMessage = await message.reply({
-    content: "Let me thinking...",
+    content: "Let me thinking and write the answers for you...",
     options: {
       ephemeral: true,
     },
