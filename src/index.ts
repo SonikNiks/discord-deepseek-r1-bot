@@ -11,6 +11,7 @@ import {
 import generateResponse from "./lib/fetch/internal";
 import cleanAIResponse from "./lib/utils/cleanResponse";
 import generateAPIResponse from "./lib/fetch/external";
+import sendPaginatedReply from "./lib/utils/sendPaginatedReply";
 
 const client = new Client({
   intents: [
@@ -36,13 +37,17 @@ async function localFetch(
 
   try {
     const result = await generateResponse(
-      process.env.DEEPSEEK_MODEL,
+      process.env.DEEPSEEK_MODEL || "",
       message.content
     );
 
     if (result) {
       thinkingMessage.delete();
-      await message.reply(cleanAIResponse(result?.response));
+      const sentMessage = await message.reply(
+        cleanAIResponse(result?.response)
+      );
+      await sentMessage.react("👍🏻");
+      await sentMessage.react("👎🏻");
     }
   } catch (err) {
     thinkingMessage.delete();
@@ -68,8 +73,16 @@ client.on(Events.MessageCreate, async (message) => {
     const result = await generateAPIResponse("deepseek-chat", message.content);
 
     if (result) {
-      // @ts-expect-error - `result` is a string
-      await message.reply(cleanAIResponse(result?.response));
+      if (Array.isArray(result)) {
+        await sendPaginatedReply(message, result);
+      } else {
+        // @ts-expect-error - `result` is a string
+        const sentMessage = await message.reply(
+          cleanAIResponse(result?.response)
+        );
+        await sentMessage.react("👍🏻");
+        await sentMessage.react("👎🏻");
+      }
     }
   } catch (err) {
     await localFetch(thinkingMessage, message);
@@ -77,21 +90,25 @@ client.on(Events.MessageCreate, async (message) => {
 });
 
 client.on("messageReactionAdd", async (reaction, user) => {
-  if (reaction.partial) {
-    try {
-      await reaction.fetch();
-    } catch (error) {
-      console.error("Failed to fetch the reaction:", error);
-      return;
+  try {
+    if (reaction.partial) {
+      try {
+        await reaction.fetch();
+      } catch (error) {
+        console.error("Failed to fetch the reaction:", error);
+        return;
+      }
     }
-  }
 
-  if (user.bot) return;
+    if (user.bot) return;
 
-  if (reaction.emoji.name === "👍🏻") {
-    await reaction.message.reply(`Glad you liked my answer!`);
-  } else if (reaction.emoji.name === "👎🏻") {
-    await reaction.message.reply(`Oh no! you disliked my answer!`);
+    if (reaction.emoji.name === "👍🏻") {
+      await reaction.message.reply(`Glad you liked my answer!`);
+    } else if (reaction.emoji.name === "👎🏻") {
+      await reaction.message.reply(`Oh no! you disliked my answer!`);
+    }
+  } catch (err) {
+    console.error(err);
   }
 });
 

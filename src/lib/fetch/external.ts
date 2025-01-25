@@ -1,9 +1,54 @@
+// @ts-expect-error - follow-redirects is not typed
 import follow from "follow-redirects";
 
 const https = follow.https;
 
-async function makeRequest(message: string, model: string) {
-  const options = {
+interface ApiRequestOptions {
+  method: string;
+  hostname: string;
+  path: string;
+  headers: {
+    "Content-Type": string;
+    Accept: string;
+    Authorization: string;
+  };
+  maxRedirects: number;
+}
+
+interface ApiRequestBody {
+  messages: Array<{
+    content: string;
+    role: "system" | "user" | "assistant";
+  }>;
+  model: string;
+  frequency_penalty: number;
+  max_tokens: number;
+  presence_penalty: number;
+  response_format: {
+    type: "text";
+  };
+  stop: null;
+  stream: boolean;
+  stream_options: null;
+  temperature: number;
+  top_p: number;
+  tools: null;
+  tool_choice: "none";
+  logprobs: boolean;
+  top_logprobs: null;
+}
+
+interface ApiResponse {
+  choices: Array<{
+    message: {
+      content: string;
+    };
+  }>;
+}
+
+// Function to make the API request
+async function makeRequest(message: string, model: string): Promise<string> {
+  const options: ApiRequestOptions = {
     method: "POST",
     hostname: "api.deepseek.com",
     path: "/chat/completions",
@@ -15,7 +60,7 @@ async function makeRequest(message: string, model: string) {
     maxRedirects: 20,
   };
 
-  const postData = JSON.stringify({
+  const postData: ApiRequestBody = {
     messages: [
       {
         content: "You are a helpful assistant",
@@ -42,13 +87,13 @@ async function makeRequest(message: string, model: string) {
     tool_choice: "none",
     logprobs: false,
     top_logprobs: null,
-  });
+  };
 
   return new Promise((resolve, reject) => {
-    const req = https.request(options, (res) => {
-      let chunks = [];
+    const req = https.request(options, (res: any) => {
+      let chunks: Buffer[] = [];
 
-      res.on("data", (chunk) => {
+      res.on("data", (chunk: Buffer) => {
         chunks.push(chunk);
       });
 
@@ -57,25 +102,36 @@ async function makeRequest(message: string, model: string) {
         resolve(body);
       });
 
-      res.on("error", (error) => {
+      res.on("error", (error: Error) => {
         reject(error);
       });
     });
 
-    req.on("error", (error) => {
+    req.on("error", (error: Error) => {
       reject(error);
     });
 
-    req.write(postData);
+    req.write(JSON.stringify(postData));
     req.end();
   });
 }
 
-async function generateAPIResponse(model?: string, message?: string) {
+// Function to generate API response
+async function generateAPIResponse(
+  model: string,
+  message: string
+): Promise<string | string[] | null> {
   const response = await makeRequest(message, model);
-  const json = JSON.parse(response);
+  const json: ApiResponse = JSON.parse(response);
+  const defaultMessage = "Sorry, I couldn't find any response for you.";
 
-  return json?.choices[0]?.message?.content;
+  if (json?.choices && json.choices.length > 1) {
+    return json.choices.map((choice) => choice.message?.content);
+  } else if (json?.choices && json.choices.length === 1) {
+    return json?.choices?.[0]?.message?.content || defaultMessage;
+  } else {
+    return defaultMessage;
+  }
 }
 
 export default generateAPIResponse;
