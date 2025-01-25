@@ -32,6 +32,8 @@ async function localFetch(
 ) {
   if (message.author.bot) return;
 
+  await message.channel.sendTyping();
+
   try {
     const result = await generateResponse(
       process.env.DEEPSEEK_MODEL,
@@ -60,6 +62,8 @@ client.on(Events.MessageCreate, async (message) => {
     },
   });
 
+  await message.channel.sendTyping();
+
   try {
     const result = await generateAPIResponse("deepseek-chat", message.content);
 
@@ -69,6 +73,25 @@ client.on(Events.MessageCreate, async (message) => {
     }
   } catch (err) {
     await localFetch(thinkingMessage, message);
+  }
+});
+
+client.on("messageReactionAdd", async (reaction, user) => {
+  if (reaction.partial) {
+    try {
+      await reaction.fetch();
+    } catch (error) {
+      console.error("Failed to fetch the reaction:", error);
+      return;
+    }
+  }
+
+  if (user.bot) return;
+
+  if (reaction.emoji.name === "👍🏻") {
+    await reaction.message.reply(`Glad you liked my answer!`);
+  } else if (reaction.emoji.name === "👎🏻") {
+    await reaction.message.reply(`Oh no! you disliked my answer!`);
   }
 });
 
