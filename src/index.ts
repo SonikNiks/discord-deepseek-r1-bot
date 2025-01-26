@@ -44,7 +44,7 @@ async function localFetch(
     if (result) {
       thinkingMessage.delete();
       const sentMessage = await message.reply(
-        cleanAIResponse(result?.response)
+        `(local) ${cleanAIResponse(result?.response)}`
       );
       await sentMessage.react("👍🏻");
       await sentMessage.react("👎🏻");
@@ -70,6 +70,10 @@ client.on(Events.MessageCreate, async (message) => {
   await message.channel.sendTyping();
 
   try {
+    if (process.env.ONLY_LOCAL) {
+      return await localFetch(thinkingMessage, message);
+    }
+
     const result = await generateAPIResponse("deepseek-chat", message.content);
 
     if (result) {
