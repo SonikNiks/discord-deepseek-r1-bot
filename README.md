@@ -22,8 +22,8 @@ docker run -d --gpus=all -v ollama:/root/.ollama -p 11434:11434 --name ollama ol
 git clone https://github.com/fzn0x/discord-deepseek-r1-bot
 cd discord-deepseek-r1-bot
 nix develop # Ensure flakes are enabled in /etc/nix/nix.conf
+ollama pull deepseek-r1:1.5b
 ollama serve & # Ensure cuda is installed on your machine
-ollama run deepseek-r1:1.5b
 ```
 
 ### Run Deepseek R1 Model with Ollama (For Docker Installation)
