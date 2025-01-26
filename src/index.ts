@@ -6,6 +6,7 @@ import {
   GatewayIntentBits,
   Message,
   OmitPartialGroupDMChannel,
+  AttachmentBuilder,
 } from "discord.js";
 
 import generateResponse from "./lib/fetch/internal";
@@ -44,7 +45,7 @@ async function localFetch(
     if (result) {
       thinkingMessage.delete();
       const sentMessage = await message.reply(
-        `(local) ${cleanAIResponse(result?.response)}`
+        cleanAIResponse((result?.response || "").slice(0, 2000))
       );
       await sentMessage.react("👍🏻");
       await sentMessage.react("👎🏻");
@@ -70,8 +71,10 @@ client.on(Events.MessageCreate, async (message) => {
   await message.channel.sendTyping();
 
   try {
-    if (process.env.ONLY_LOCAL) {
+    if (process.env.ONLY_LOCAL === "true") {
       return await localFetch(thinkingMessage, message);
+    } else {
+      console.log("Skipping only local...");
     }
 
     const result = await generateAPIResponse("deepseek-chat", message.content);
@@ -80,15 +83,25 @@ client.on(Events.MessageCreate, async (message) => {
       if (Array.isArray(result)) {
         await sendPaginatedReply(message, result);
       } else {
-        // @ts-expect-error - `result` is a string
         const sentMessage = await message.reply(
-          cleanAIResponse(result?.response)
+          cleanAIResponse((result || "").slice(0, 2000))
         );
         await sentMessage.react("👍🏻");
         await sentMessage.react("👎🏻");
+        if (result.length > 2000) {
+          const buffer = Buffer.from(result, "utf-8");
+          const attachment = new AttachmentBuilder(buffer, {
+            name: "response.txt",
+          });
+          await message.reply(
+            "Sorry, I can't send more than 2000 length message :(, but here is the response in a file!"
+          );
+          await message.reply({ files: [attachment] });
+        }
       }
     }
   } catch (err) {
+    console.log(`Error using API: ${err.message}`);
     await localFetch(thinkingMessage, message);
   }
 });
