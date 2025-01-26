@@ -9,6 +9,7 @@ This is Discord Bot for Deepseek R1 with automically fallback to local fetching 
 - Discordjs
 - TypeScript
 - Ollama (just use docker, why you so fall in love with direct binary execution)
+  - You can also install by `flake.nix` with Nix
 - Deepseek R1 API
 
 ## Local Serving for Deepseek-R1 (since you don't know) 🍽️
@@ -17,6 +18,10 @@ This is Discord Bot for Deepseek R1 with automically fallback to local fetching 
 
 ```sh
 docker run -d --gpus=all -v ollama:/root/.ollama -p 11434:11434 --name ollama ollama/ollama
+# or
+git clone https://github.com/fzn0x/discord-deepseek-r1-bot
+cd discord-deepseek-r1-bot
+nix develop
 ```
 
 ### Run Deepseek R1 Model with Ollama
