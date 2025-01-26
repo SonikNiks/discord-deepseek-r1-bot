@@ -24,7 +24,7 @@ cd discord-deepseek-r1-bot
 nix develop
 ```
 
-### Run Deepseek R1 Model with Ollama
+### Run Deepseek R1 Model with Ollama (For Docker Installation)
 
 I'm using 1.5b, you can choose other models here: https://ollama.com/library/deepseek-r1:1.5b
 

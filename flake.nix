@@ -1,19 +1,47 @@
 {
-  description = "Nix flake for Ollama";
+  description = "Nix flakes for ollama";
 
   inputs = {
-    nixpkgs.url = "github:NixOS/nixpkgs/nixos-unstable";
+    nixpkgs.url = "github:NixOS/nixpkgs/nixpkgs-unstable";
+    nixpkgs-unfree = {
+      url = "github:numtide/nixpkgs-unfree";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
   };
 
-  outputs = { self, nixpkgs }: 
-    let 
-      system = "x86_64-linux";
-      pkgs = nixpkgs.legacyPackages.${system};
-    in {
-      devShells.${system}.default = pkgs.mkShell {
-        packages = [ pkgs.ollama ];
-      };
-      
-      packages.${system}.default = pkgs.ollama;
+  outputs =
+    { nixpkgs, nixpkgs-unfree, ... }:
+    let
+      inherit (nixpkgs) lib;
+
+      forAllSystems =
+        systems: buildPackages:
+        lib.genAttrs systems (system: buildPackages nixpkgs-unfree.legacyPackages.${system});
+
+      buildPackages =
+        systems: packageOverrides:
+        forAllSystems systems (
+          pkgs: builtins.mapAttrs (_: pkgs.callPackage ./package.nix) (packageOverrides pkgs)
+        );
+
+      unixPackages = buildPackages lib.platforms.unix (pkgs: {
+        default = { };
+      });
+
+      linuxPackages = buildPackages lib.platforms.linux (pkgs: {
+        default = { };
+        rocm = {
+          acceleration = "rocm";
+        };
+        cuda = {
+          acceleration = "cuda";
+        };
+        cpu = {
+          acceleration = false;
+        };
+      });
+    in
+    {
+      packages = unixPackages // linuxPackages;
     };
 }
