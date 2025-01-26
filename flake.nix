@@ -1,47 +1,29 @@
 {
-  description = "Nix flakes for ollama";
+  description = "Nix flake for Ollama (non-NixOS)";
 
   inputs = {
-    nixpkgs.url = "github:NixOS/nixpkgs/nixpkgs-unstable";
-    nixpkgs-unfree = {
-      url = "github:numtide/nixpkgs-unfree";
-      inputs.nixpkgs.follows = "nixpkgs";
-    };
+    nixpkgs.url = "github:NixOS/nixpkgs/nixos-unstable";
+    flake-utils.url = "github:numtide/flake-utils";
   };
 
-  outputs =
-    { nixpkgs, nixpkgs-unfree, ... }:
-    let
-      inherit (nixpkgs) lib;
-
-      forAllSystems =
-        systems: buildPackages:
-        lib.genAttrs systems (system: buildPackages nixpkgs-unfree.legacyPackages.${system});
-
-      buildPackages =
-        systems: packageOverrides:
-        forAllSystems systems (
-          pkgs: builtins.mapAttrs (_: pkgs.callPackage ./package.nix) (packageOverrides pkgs)
-        );
-
-      unixPackages = buildPackages lib.platforms.unix (pkgs: {
-        default = { };
-      });
-
-      linuxPackages = buildPackages lib.platforms.linux (pkgs: {
-        default = { };
-        rocm = {
-          acceleration = "rocm";
+  outputs = { self, nixpkgs, flake-utils }:
+    flake-utils.lib.eachDefaultSystem (system:
+      let
+        pkgs = nixpkgs.legacyPackages.${system};
+        ollama-cuda = pkgs.ollama.override { 
+          acceleration = "cuda"; 
+          cudaGcc = pkgs.gcc11;
         };
-        cuda = {
-          acceleration = "cuda";
+      in {
+        packages = {
+          default = pkgs.ollama;
+          cuda = ollama-cuda;
         };
-        cpu = {
-          acceleration = false;
+
+        devShells.default = pkgs.mkShell {
+          packages = [ pkgs.ollama ];
+          shellHook = ''export HOME="$HOME" '';
         };
-      });
-    in
-    {
-      packages = unixPackages // linuxPackages;
-    };
+      }
+    );
 }
