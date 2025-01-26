@@ -49,6 +49,16 @@ async function localFetch(
       );
       await sentMessage.react("👍🏻");
       await sentMessage.react("👎🏻");
+      if ((result?.response || "").length > 2000) {
+        const buffer = Buffer.from(result?.response, "utf-8");
+        const attachment = new AttachmentBuilder(buffer, {
+          name: "response.txt",
+        });
+        await message.reply(
+          "Sorry, I can't send more than 2000 length message :(, but here is the response in a file!"
+        );
+        await message.reply({ files: [attachment] });
+      }
     }
   } catch (err) {
     thinkingMessage.delete();
