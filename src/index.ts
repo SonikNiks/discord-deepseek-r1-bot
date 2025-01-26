@@ -70,7 +70,6 @@ client.on(Events.MessageCreate, async (message) => {
   await message.channel.sendTyping();
 
   try {
-    throw new Error("lmao");
     const result = await generateAPIResponse("deepseek-chat", message.content);
 
     if (result) {
