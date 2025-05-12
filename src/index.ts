@@ -195,22 +195,29 @@ client.on('messageCreate', async (message: Message) => {
 
   try {
     // 4. Делаем POST-запрос к Deepseek
-    await fetch('https://api.deepseek.com/v1/chat/completions', {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${process.env.DEEPSEEK_TOKEN}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        model: process.env.DEEPSEEK_MODEL,
-        messages: messagesArray
-      })
-    });
+    const res = await fetch('https://api.deepseek.com/v1/chat/completions', { /* … */ });
 
-    // 5. Логируем статус и тело ответа
+    // Логируем статус и сырое тело
     console.log('> Deepseek status:', res.status);
-    const data = await res.json();
-    console.log('> Deepseek response body:', data);
+    const raw = await res.text();
+    console.log('> Deepseek raw response:', raw);
+  
+    // Пытаемся разобрать JSON только если это действительно JSON
+    let data: any;
+    const contentType = res.headers.get('content-type') ?? '';
+    if (contentType.includes('application/json')) {
+      try {
+        data = JSON.parse(raw);
+      } catch (parseErr) {
+        console.error('JSON parse error:', parseErr);
+        await message.channel.send('Ошибка: не смог разобрать ответ Deepseek как JSON.');
+        return;
+      }
+    } else {
+      console.error('Unexpected content-type:', contentType);
+      await message.channel.send('Ошибка: Deepseek вернул неожиданный формат ответа.');
+      return;
+    };
 
     // 6. Извлекаем ответ и отправляем в канал
     const reply = data.choices?.[0]?.message?.content;
