@@ -165,73 +165,38 @@ body: JSON.stringify({
 client.on('messageCreate', async (message: Message) => {
   if (message.author.bot) return;
 
-  // 1. Собираем prompt из сообщения пользователя
-  const prompt = message.content;
+  // Показываем «бот печатает…», без лишнего текста
+  await message.channel.sendTyping();
 
-  // 2. Формируем массив сообщений для Deepseek
+  // Готовим prompt и messagesArray, как раньше
+  const prompt = message.content;
   const messagesArray = [
     { role: 'system', content: 'You are a helpful assistant.' },
     { role: 'user',   content: prompt }
   ];
 
-  // 3. Логируем запрос для диагностики
-  console.log('> Deepseek prompt:', prompt);
-  console.log('> Deepseek request body:', JSON.stringify({
-    model: process.env.DEEPSEEK_MODEL,
-    messages: messagesArray
-  }));
-
-  const res = await fetch('https://api.deepseek.com/v1/chat/completions', {
-    method: 'POST',
-    headers: {
-      'Authorization': `Bearer ${process.env.DEEPSEEK_TOKEN}`,
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify({
-      model: process.env.DEEPSEEK_MODEL,
-      messages: messagesArray
-    })
-  })
-
   try {
-    // 4. Делаем POST-запрос к Deepseek
     const res = await fetch('https://api.deepseek.com/v1/chat/completions', { /* … */ });
-
-    // Логируем статус и сырое тело
     console.log('> Deepseek status:', res.status);
     const raw = await res.text();
     console.log('> Deepseek raw response:', raw);
-  
-    // Пытаемся разобрать JSON только если это действительно JSON
-    let data: any;
-    const contentType = res.headers.get('content-type') ?? '';
-    if (contentType.includes('application/json')) {
-      try {
-        data = JSON.parse(raw);
-      } catch (parseErr) {
-        console.error('JSON parse error:', parseErr);
-        await message.channel.send('Ошибка: не смог разобрать ответ Deepseek как JSON.');
-        return;
-      }
-    } else {
-      console.error('Unexpected content-type:', contentType);
-      await message.channel.send('Ошибка: Deepseek вернул неожиданный формат ответа.');
-      return;
-    };
-
-    // 6. Извлекаем ответ и отправляем в канал
+    if (!res.ok || !res.headers.get('content-type')?.includes('application/json')) {
+      throw new Error(`Bad response: ${res.status}`);
+    }
+    const data = JSON.parse(raw);
     const reply = data.choices?.[0]?.message?.content;
     if (reply) {
       await message.channel.send(reply);
     } else {
-      await message.channel.send("Sorry, I couldn't find any response for you.");
+      console.warn('No reply in Deepseek response', data);
+      // можно либо молча ничего не шлём, либо отправить очень короткое:
+      await message.channel.send('Прости, не нашёл ответа.');
     }
-
   } catch (err) {
-    console.error('> Deepseek request error:', err);
-    await message.channel.send("Внутренняя ошибка при обращении к Deepseek.");
+    console.error('Deepseek request failed:', err);
+    // не отправляем err в чат, просто выходим или шлём минимальное уведомление
+    // await message.channel.send('Упс, что-то пошло не так, попробуй позже.');
   }
 });
 
-// И не забудьте в самом конце:
 client.login(process.env.DISCORD_TOKEN);
