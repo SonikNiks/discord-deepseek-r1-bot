@@ -153,17 +153,66 @@ client.on("messageReactionAdd", async (reaction, user) => {
   }
 });
 
-client.login(process.env.DISCORD_TOKEN);
 
-console.log('> Deepseek prompt:', prompt);
-const res = await fetch('https://api.deepseek.ai/v1/chat/completions', {
-  method: 'POST',
-  headers: {
-    'Authorization': `Bearer ${process.env.DEEPSEEK_TOKEN}`,  // или API_KEY
-    'Content-Type': 'application/json',
-  },
-  body: JSON.stringify({ model: process.env.DEEPSEEK_MODEL, messages: […] }),
+body: JSON.stringify({
+  model: process.env.DEEPSEEK_MODEL,
+  messages: [
+    { role: "system", content: "You are a helpful assistant." },
+    { role: "user",   content: prompt }
+  ]
+})
+
+client.on('messageCreate', async (message: Message) => {
+  if (message.author.bot) return;
+
+  // 1. Собираем prompt из сообщения пользователя
+  const prompt = message.content;
+
+  // 2. Формируем массив сообщений для Deepseek
+  const messagesArray = [
+    { role: 'system', content: 'You are a helpful assistant.' },
+    { role: 'user',   content: prompt }
+  ];
+
+  // 3. Логируем запрос для диагностики
+  console.log('> Deepseek prompt:', prompt);
+  console.log('> Deepseek request body:', JSON.stringify({
+    model: process.env.DEEPSEEK_MODEL,
+    messages: messagesArray
+  }));
+
+  try {
+    // 4. Делаем POST-запрос к Deepseek
+    const res = await fetch('https://api.deepseek.ai/v1/chat/completions', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${process.env.DEEPSEEK_TOKEN}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        model: process.env.DEEPSEEK_MODEL,
+        messages: messagesArray
+      })
+    });
+
+    // 5. Логируем статус и тело ответа
+    console.log('> Deepseek status:', res.status);
+    const data = await res.json();
+    console.log('> Deepseek response body:', data);
+
+    // 6. Извлекаем ответ и отправляем в канал
+    const reply = data.choices?.[0]?.message?.content;
+    if (reply) {
+      await message.channel.send(reply);
+    } else {
+      await message.channel.send("Sorry, I couldn't find any response for you.");
+    }
+
+  } catch (err) {
+    console.error('> Deepseek request error:', err);
+    await message.channel.send("Внутренняя ошибка при обращении к Deepseek.");
+  }
 });
-const text = await res.text();
-console.log('> Deepseek status:', res.status);
-console.log('> Deepseek response body:', text);
+
+// И не забудьте в самом конце:
+client.login(process.env.DISCORD_TOKEN);
