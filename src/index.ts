@@ -34,6 +34,14 @@ client.on(Events.ClientReady, (readyClient) => {
 client.on('messageCreate', message => {
   // Игнорируем собственные сообщения
   if (message.author.bot) return;
+
+  // Если это сообщение в канале (не DM) и нет упоминания бота — игнорируем
+  if (
+    message.channel.type !== ChannelType.DM &&
+    !message.mentions.has(message.client.user!)
+  ) {
+    return;
+  }
   
   // Любой DM или упоминание в гильдии
   if (message.channel.type === 'DM') {
