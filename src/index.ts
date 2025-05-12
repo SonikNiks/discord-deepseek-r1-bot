@@ -92,8 +92,6 @@ async function localFetch(
     for (let i = 0; i < fullResponse.length; i += 2000) {
       const chunk = fullResponse.slice(i, i + 2000);
       const sentMessage = await message.reply(cleanAIResponse(chunk));
-      await sentMessage.react('👍🏻');
-      await sentMessage.react('👎🏻');
     }
   } catch (err: any) {
     console.error(`Error in localFetch: ${err.message}`);
@@ -134,8 +132,6 @@ client.on(Events.MessageCreate, async (message) => {
     // Отправляем каждый кусок как отдельное сообщение
     for (const chunk of chunks) {
       const sent = await message.reply(cleanAIResponse(chunk));
-      await sent.react("👍🏻");
-      await sent.react("👎🏻");
     }
 
   } catch (err: any) {
