@@ -1,4 +1,4 @@
-import dotenv from "dotenv";
+∂import dotenv from "dotenv";
 dotenv.config();
 import {
   Client,
@@ -43,7 +43,6 @@ client.on('messageCreate', message => {
 });
 
 async function localFetch(
-  thinkingMessage: Message<boolean>,
   message: OmitPartialGroupDMChannel<Message<boolean>>
 ) {
   if (message.author.bot) return;
@@ -57,7 +56,6 @@ async function localFetch(
     );
 
     if (result) {
-      thinkingMessage.delete();
       const sentMessage = await message.reply(
         cleanAIResponse((result?.response || "").slice(0, 2000))
       );
@@ -75,7 +73,6 @@ async function localFetch(
       }
     }
   } catch (err) {
-    thinkingMessage.delete();
     await message.reply(
       `An error occurred while processing your request. Error: ${err.message}`
     );
@@ -85,18 +82,10 @@ async function localFetch(
 client.on(Events.MessageCreate, async (message) => {
   if (message.author.bot) return;
 
-  const thinkingMessage = await message.reply({
-    content: "Let me thinking and write the answers for you...",
-    options: {
-      ephemeral: true,
-    },
-  });
-
   await message.channel.sendTyping();
 
-  try {
-    if (process.env.ONLY_LOCAL === "true") {
-      return await localFetch(thinkingMessage, message);
+  if (process.env.ONLY_LOCAL === "true") {
+      return await localFetch(null, message);
     } else {
       console.log("Skipping only local...");
     }
@@ -126,7 +115,7 @@ client.on(Events.MessageCreate, async (message) => {
     }
   } catch (err) {
     console.log(`Error using API: ${err.message}`);
-    await localFetch(thinkingMessage, message);
+    await localFetch(null, message);
   }
 });
 
