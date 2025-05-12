@@ -63,8 +63,6 @@ client.on(Events.MessageCreate, async (message) => {
     for (let i = 0; i < fullReply.length; i += 2000) {
       const chunk = fullReply.slice(i, i + 2000);
       const sent = await message.reply(cleanAIResponse(chunk));
-      await sent.react('👍🏻');
-      await sent.react('👎🏻');
     }
 
   } catch (err: any) {
