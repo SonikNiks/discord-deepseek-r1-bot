@@ -37,12 +37,45 @@ client.on('messageCreate', message => {
   
   // Любой DM или упоминание в гильдии
   if (message.channel.type === 'DM') {
-    message.channel.send('Привет! Я получил твоё личное сообщение 😊');
+    message.channel.send('Привет! Я тут');
   }
   // … ваш остальной код
 });
 
+client.on(Events.MessageCreate, async (message) => {
+  try {
+    if (message.author.bot) return;
+
+    await message.channel.sendTyping();
+
+    if (process.env.ONLY_LOCAL === 'true') {
+      return await localFetch(null, message);
+    } else {
+      console.log('Skipping only local...');
+    }
+
+    const result = await generateAPIResponse('deepseek-chat', message.content);
+    if (!result) return;
+
+    const fullReply = Array.isArray(result) ? result.join('\n') : result;
+
+    // Split into chunks of 2000 characters and send each
+    for (let i = 0; i < fullReply.length; i += 2000) {
+      const chunk = fullReply.slice(i, i + 2000);
+      const sent = await message.reply(cleanAIResponse(chunk));
+      await sent.react('👍🏻');
+      await sent.react('👎🏻');
+    }
+
+  } catch (err: any) {
+    console.error(`Error using API: ${err.message}`);
+    await localFetch(null, message);
+  }
+});
+
+// Local fetch fallback
 async function localFetch(
+  _unused: null,
   message: OmitPartialGroupDMChannel<Message<boolean>>
 ) {
   if (message.author.bot) return;
@@ -51,95 +84,65 @@ async function localFetch(
 
   try {
     const result = await generateResponse(
-      process.env.DEEPSEEK_MODEL || "",
+      process.env.DEEPSEEK_MODEL || '',
       message.content
     );
+    if (!result) return;
 
-    if (result) {
-      const sentMessage = await message.reply(
-        cleanAIResponse((result?.response || "").slice(0, 2000))
-      );
-      await sentMessage.react("👍🏻");
-      await sentMessage.react("👎🏻");
-      if ((result?.response || "").length > 2000) {
-        const buffer = Buffer.from(result?.response, "utf-8");
-        const attachment = new AttachmentBuilder(buffer, {
-          name: "response.txt",
-        });
-        await message.reply(
-          "Sorry, I can't send more than 2000 length message :(, but here is the response in a file!"
-        );
-        await message.reply({ files: [attachment] });
-      }
+    const fullResponse = result.response || '';
+    // Split into chunks
+    for (let i = 0; i < fullResponse.length; i += 2000) {
+      const chunk = fullResponse.slice(i, i + 2000);
+      const sentMessage = await message.reply(cleanAIResponse(chunk));
+      await sentMessage.react('👍🏻');
+      await sentMessage.react('👎🏻');
     }
-  } catch (err) {
+  } catch (err: any) {
+    console.error(`Error in localFetch: ${err.message}`);
     await message.reply(
       `An error occurred while processing your request. Error: ${err.message}`
     );
   }
 }
 
+
 client.on(Events.MessageCreate, async (message) => {
-  if (message.author.bot) return;
+  try {
+    if (message.author.bot) return;
 
-  await message.channel.sendTyping();
+    // Показываем индикатор "печати"
+    await message.channel.sendTyping();
 
-  if (process.env.ONLY_LOCAL === "true") {
+    // Только локальный режим
+    if (process.env.ONLY_LOCAL === "true") {
       return await localFetch(null, message);
     } else {
       console.log("Skipping only local...");
     }
 
+    // Получаем ответ от API
     const result = await generateAPIResponse("deepseek-chat", message.content);
+    if (!result) return;
 
-    if (result) {
-      if (Array.isArray(result)) {
-        await sendPaginatedReply(message, result);
-      } else {
-        const sentMessage = await message.reply(
-          cleanAIResponse((result || "").slice(0, 2000))
-        );
-        await sentMessage.react("👍🏻");
-        await sentMessage.react("👎🏻");
-        if (result.length > 2000) {
-          const buffer = Buffer.from(result, "utf-8");
-          const attachment = new AttachmentBuilder(buffer, {
-            name: "response.txt",
-          });
-          await message.reply(
-            "Sorry, I can't send more than 2000 length message :(, but here is the response in a file!"
-          );
-          await message.reply({ files: [attachment] });
-        }
-      }
+    // Обрабатываем результат: либо массив строк, либо одна строка
+    const fullReply = Array.isArray(result) ? result.join("\n") : result;
+
+    // Разбиваем на куски по 2000 символов
+    const chunks: string[] = [];
+    for (let i = 0; i < fullReply.length; i += 2000) {
+      chunks.push(fullReply.slice(i, i + 2000));
     }
-  } catch (err) {
-    console.log(`Error using API: ${err.message}`);
+
+    // Отправляем каждый кусок как отдельное сообщение
+    for (const chunk of chunks) {
+      const sent = await message.reply(cleanAIResponse(chunk));
+      await sent.react("👍🏻");
+      await sent.react("👎🏻");
+    }
+
+  } catch (err: any) {
+    console.error(`Error using API: ${err.message}`);
     await localFetch(null, message);
-  }
-});
-
-
-client.on("messageReactionAdd", async (reaction, user) => {
-  try {
-    if (reaction.partial) {
-      try {
-        await reaction.fetch();
-      } catch (error) {
-        console.error("Failed to fetch the reaction:", error);
-        return;
-      }
-    }
-
-    if (user.bot) return;
-
-    if (reaction.emoji.name === "👍🏻") {
-      await reaction.message.reply(`Glad you liked my answer!`);
-    } else if (reaction.emoji.name === "👎🏻") {
-      await reaction.message.reply(`Oh no! you disliked my answer!`);
-    }
-  } catch (err) {
-    console.error(err);
   }
 });
 
