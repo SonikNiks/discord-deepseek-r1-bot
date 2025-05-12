@@ -154,3 +154,16 @@ client.on("messageReactionAdd", async (reaction, user) => {
 });
 
 client.login(process.env.DISCORD_TOKEN);
+
+console.log('> Deepseek prompt:', prompt);
+const res = await fetch('https://api.deepseek.ai/v1/chat/completions', {
+  method: 'POST',
+  headers: {
+    'Authorization': `Bearer ${process.env.DEEPSEEK_TOKEN}`,  // или API_KEY
+    'Content-Type': 'application/json',
+  },
+  body: JSON.stringify({ model: process.env.DEEPSEEK_MODEL, messages: […] }),
+});
+const text = await res.text();
+console.log('> Deepseek status:', res.status);
+console.log('> Deepseek response body:', text);
