@@ -6,6 +6,7 @@ import {
   GatewayIntentBits,
   Message,
   OmitPartialGroupDMChannel,
+  Partials,
   AttachmentBuilder,
 } from "discord.js";
 
