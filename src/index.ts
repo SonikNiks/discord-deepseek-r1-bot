@@ -21,11 +21,24 @@ const client = new Client({
     GatewayIntentBits.GuildMessageReactions,
     GatewayIntentBits.GuildMessageTyping,
     GatewayIntentBits.MessageContent,
+    GatewayIntentBits.DirectMessages
   ],
+  partials: [ Partials.Channel ] 
 });
 
 client.on(Events.ClientReady, (readyClient) => {
   console.log(`Logged in as ${readyClient.user.tag}!`);
+});
+
+client.on('messageCreate', message => {
+  // Игнорируем собственные сообщения
+  if (message.author.bot) return;
+  
+  // Любой DM или упоминание в гильдии
+  if (message.channel.type === 'DM') {
+    message.channel.send('Привет! Я получил твоё личное сообщение 😊');
+  }
+  // … ваш остальной код
 });
 
 async function localFetch(
