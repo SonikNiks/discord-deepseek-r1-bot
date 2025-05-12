@@ -113,11 +113,12 @@ client.on(Events.MessageCreate, async (message) => {
         }
       }
     }
-  } catch (err) {
+  }); 
+catch (err) {
     console.log(`Error using API: ${err.message}`);
     await localFetch(null, message);
   }
-});
+
 
 client.on("messageReactionAdd", async (reaction, user) => {
   try {
