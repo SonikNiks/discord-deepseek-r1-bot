@@ -183,7 +183,7 @@ client.on('messageCreate', async (message: Message) => {
 
   try {
     // 4. Делаем POST-запрос к Deepseek
-    const res = await fetch('https://api.deepseek.ai/v1/chat/completions', {
+    await fetch('https://api.deepseek.com/v1/chat/completions', {
       method: 'POST',
       headers: {
         'Authorization': `Bearer ${process.env.DEEPSEEK_TOKEN}`,
