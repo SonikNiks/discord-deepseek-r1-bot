@@ -191,6 +191,7 @@ client.on('messageCreate', async (message: Message) => {
       model: process.env.DEEPSEEK_MODEL,
       messages: messagesArray
     })
+  })
 
   try {
     // 4. Делаем POST-запрос к Deepseek
