@@ -7,7 +7,8 @@ import {
   Message,
   OmitPartialGroupDMChannel,
   Partials,
-  AttachmentBuilder,
+  ChannelType,
+  AttachmentBuilder
 } from "discord.js";
 
 import generateResponse from "./lib/fetch/internal";
