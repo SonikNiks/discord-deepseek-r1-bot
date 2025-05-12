@@ -181,6 +181,17 @@ client.on('messageCreate', async (message: Message) => {
     messages: messagesArray
   }));
 
+  const res = await fetch('https://api.deepseek.com/v1/chat/completions', {
+    method: 'POST',
+    headers: {
+      'Authorization': `Bearer ${process.env.DEEPSEEK_TOKEN}`,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({
+      model: process.env.DEEPSEEK_MODEL,
+      messages: messagesArray
+    })
+
   try {
     // 4. Делаем POST-запрос к Deepseek
     await fetch('https://api.deepseek.com/v1/chat/completions', {
